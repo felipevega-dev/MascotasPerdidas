@@ -4,12 +4,23 @@ import { formatDistanceToNow } from 'date-fns';
 import { MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { Pet } from '../utils/storage';
 import { Badge } from './Badge';
+import { calculateDistance } from '../utils/geolocation';
 
 interface PetCardProps {
     pet: Pet;
+    userLocation?: { lat: number; lng: number } | null;
 }
 
-export default function PetCard({ pet }: PetCardProps) {
+export default function PetCard({ pet, userLocation }: PetCardProps) {
+    // Calculate distance if user location is available
+    const distance = userLocation
+        ? calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            pet.lastSeenLocation.lat,
+            pet.lastSeenLocation.lng
+        )
+        : null;
     return (
         <Link href={`/pet/${pet.id}`} className="block group">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
@@ -56,6 +67,17 @@ export default function PetCard({ pet }: PetCardProps) {
                             <ClockIcon className="h-4 w-4 mr-1 text-gray-400" />
                             <span>{formatDistanceToNow(new Date(pet.lastSeenDate), { addSuffix: true })}</span>
                         </div>
+                        {distance !== null && (
+                            <div className="flex items-center">
+                                <MapPinIcon className="h-4 w-4 mr-1 text-primary-500" />
+                                <span className="font-medium text-primary-600">
+                                    {distance < 1
+                                        ? `${(distance * 1000).toFixed(0)}m de ti`
+                                        : `${distance.toFixed(1)}km de ti`
+                                    }
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
