@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { ShareIcon, PrinterIcon, EyeIcon, PhoneIcon, MapPinIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { Button } from '../../components/Button';
@@ -14,7 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Dynamic import for map to avoid SSR issues
-const MapComponent = dynamic(() => import('../../components/MapComponent'), {
+const PetMapWrapper = dynamic(() => import('../../components/PetMapWrapper'), {
     ssr: false,
     loading: () => <div className="h-64 w-full bg-gray-100 animate-pulse rounded-lg" />
 });
@@ -84,7 +85,9 @@ export default function PetDetailPage() {
             <div className="min-h-screen flex flex-col items-center justify-center">
                 <h1 className="text-2xl font-bold text-gray-900">Mascota no encontrada</h1>
                 <p className="text-gray-500 mt-2">El reporte que buscas no existe o ha sido eliminado.</p>
-                <Button href="/map" className="mt-4">Volver al Mapa</Button>
+                <Link href="/map" className="mt-4">
+                    <Button>Volver al Mapa</Button>
+                </Link>
             </div>
         );
     }
@@ -171,9 +174,9 @@ export default function PetDetailPage() {
                         <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 overflow-hidden">
                             <h2 className="text-xl font-bold text-gray-900 mb-4">Ubicación del Reporte</h2>
                             <div className="h-80 rounded-lg overflow-hidden border border-gray-200">
-                                <MapComponent
-                                    center={pet.lastSeenLocation}
-                                    markers={[{ position: pet.lastSeenLocation, title: 'Última vez visto' }]}
+                                <PetMapWrapper
+                                    pets={[pet]}
+                                    userLocation={null}
                                 />
                             </div>
                         </div>
