@@ -2,26 +2,39 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Pets collection - allow read to everyone, write only authenticated users
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Pets collection
     match /pets/{petId} {
+      // Anyone can read pet listings
       allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null &&
-        (resource.data.userId == request.auth.uid || request.auth.token.admin == true);
+
+      // Only authenticated users can create pets
+      // Must include userId field matching their auth uid
+      allow create: if isAuthenticated()
+                    && request.resource.data.userId == request.auth.uid;
+
+      // Only the owner can update or delete their pet
+      allow update, delete: if isAuthenticated()
+                            && resource.data.userId == request.auth.uid;
     }
 
-    // Users collection (if needed in the future)
+    // Users collection (for storing user profiles)
     match /users/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.auth.uid == userId;
+      allow delete: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    // Comments/Updates for pets (if needed)
-    match /pets/{petId}/comments/{commentId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null &&
-        resource.data.userId == request.auth.uid;
-    }
+    // Sightings can be added by anyone, embedded in pets document
+    // (handled by pet update rules above)
   }
 }

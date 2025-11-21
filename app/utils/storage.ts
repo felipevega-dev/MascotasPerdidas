@@ -12,6 +12,7 @@ export interface Sighting {
 
 export interface Pet {
     id: string;
+    userId: string; // Firebase Auth user ID
     status: 'lost' | 'sighted' | 'found';
     type: 'dog' | 'cat' | 'other';
     name: string;

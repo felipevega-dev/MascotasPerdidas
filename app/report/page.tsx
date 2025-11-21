@@ -2,17 +2,21 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '../contexts/AuthContext';
 import ImageUpload from '../components/ImageUpload';
 import LocationPicker from '../components/LocationPicker';
 import { Button } from '../components/Button';
+import AuthModal from '../components/AuthModal';
 import { savePet, Pet } from '../utils/storage';
 import { ChevronLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 export default function ReportMissingPet() {
     const router = useRouter();
+    const { user, loading: authLoading } = useAuth();
     const [step, setStep] = useState(1);
     const [isLoading, setIsLoading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showAuthModal, setShowAuthModal] = useState(false);
 
     const [formData, setFormData] = useState<Partial<Pet>>({
         status: 'lost',
@@ -37,11 +41,24 @@ export default function ReportMissingPet() {
         setFormData({ ...formData, [name]: value });
     };
 
-    const nextStep = () => setStep(step + 1);
+    const nextStep = () => {
+        // Check authentication before allowing to proceed
+        if (!user) {
+            setShowAuthModal(true);
+            return;
+        }
+        setStep(step + 1);
+    };
+
     const prevStep = () => setStep(step - 1);
 
     const handleSubmit = async () => {
         if (isSubmitting) return;
+
+        if (!user) {
+            setShowAuthModal(true);
+            return;
+        }
 
         setIsSubmitting(true);
         setIsLoading(true);
@@ -51,6 +68,8 @@ export default function ReportMissingPet() {
 
             const newPetId = await savePet({
                 ...petData,
+                userId: user.uid,
+                contactName: user.displayName || formData.contactName || '',
                 lastSeenDate: new Date().toISOString(),
             });
 
@@ -64,7 +83,22 @@ export default function ReportMissingPet() {
         }
     };
 
+    // Show loading while checking authentication
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+        );
+    }
+
     return (
+        <>
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                onSuccess={() => setShowAuthModal(false)}
+            />
         <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto">
                 {/* Progress Steps */}
@@ -268,5 +302,6 @@ export default function ReportMissingPet() {
                 </div>
             </div>
         </main>
+        </>
     );
 }
