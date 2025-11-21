@@ -1,192 +1,270 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
-import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { getPetById, Pet, addSighting } from '../../utils/storage';
-import { generatePoster } from '../../utils/posterGenerator';
+import { ShareIcon, PrinterIcon, EyeIcon, PhoneIcon, MapPinIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import SightingModal from '../../components/SightingModal';
-import { MapPinIcon, PhoneIcon, PrinterIcon, ShareIcon, ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { getPetById, Pet, addSighting } from '../../utils/storage';
+import { generatePoster } from '../../utils/posterGenerator';
 import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
-const PetMap = dynamic(() => import('../../components/PetMap'), {
+// Dynamic import for map to avoid SSR issues
+const MapComponent = dynamic(() => import('../../components/MapComponent'), {
     ssr: false,
-    loading: () => <div className="h-64 bg-gray-100 animate-pulse rounded-xl" />,
+    loading: () => <div className="h-64 w-full bg-gray-100 animate-pulse rounded-lg" />
 });
 
-export default function PetDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params);
+export default function PetDetailPage() {
+    const params = useParams();
     const [pet, setPet] = useState<Pet | null>(null);
-    const [isSightingModalOpen, setIsSightingModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [isSightingModalOpen, setIsSightingModalOpen] = useState(false);
 
     useEffect(() => {
-        const loadPet = () => {
-            const foundPet = getPetById(resolvedParams.id);
-            setPet(foundPet || null);
-            setIsLoading(false);
+        const fetchPet = async () => {
+            if (params.id) {
+                setIsLoading(true);
+                const foundPet = await getPetById(params.id as string);
+                setPet(foundPet || null);
+                setIsLoading(false);
+            }
         };
-        loadPet();
-    }, [resolvedParams.id]);
+        fetchPet();
+    }, [params.id]);
 
-    const handleSightingSubmit = (sightingData: any) => {
+    const handleSightingSubmit = async (data: any) => {
         if (pet) {
-            addSighting(pet.id, {
+            const sighting = {
                 id: crypto.randomUUID(),
-                ...sightingData,
-            });
-            // Reload pet data
-            const updatedPet = getPetById(pet.id);
+                date: new Date().toISOString(),
+                ...data
+            };
+            await addSighting(pet.id, sighting);
+
+            // Refresh pet data
+            const updatedPet = await getPetById(pet.id);
             setPet(updatedPet || null);
+            setIsSightingModalOpen(false);
         }
     };
 
-    if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-    if (!pet) return <div className="min-h-screen flex items-center justify-center">Pet not found</div>;
+    const handleShare = async () => {
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: `Ayuda a encontrar a ${pet?.name}`,
+                    text: `¡${pet?.name} está perdido! Por favor ayuda a encontrarlo.`,
+                    url: window.location.href,
+                });
+            } catch (err) {
+                console.error('Error sharing:', err);
+            }
+        } else {
+            // Fallback to clipboard
+            navigator.clipboard.writeText(window.location.href);
+            alert('¡Enlace copiado al portapapeles!');
+        }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+        );
+    }
+
+    if (!pet) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center">
+                <h1 className="text-2xl font-bold text-gray-900">Mascota no encontrada</h1>
+                <p className="text-gray-500 mt-2">El reporte que buscas no existe o ha sido eliminado.</p>
+                <Button href="/map" className="mt-4">Volver al Mapa</Button>
+            </div>
+        );
+    }
 
     return (
         <main className="min-h-screen bg-gray-50 pb-20">
-            {/* Header Image */}
+            {/* Hero Image */}
             <div className="relative h-96 w-full bg-gray-900">
                 {pet.photo ? (
-                    <Image src={pet.photo} alt={pet.name} fill className="object-cover opacity-90" />
+                    <Image
+                        src={pet.photo}
+                        alt={pet.name}
+                        fill
+                        className="object-contain"
+                        priority
+                    />
                 ) : (
-                    <div className="flex items-center justify-center h-full text-gray-400">No photo available</div>
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                        Sin foto disponible
+                    </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-
-                <div className="absolute top-4 left-4">
-                    <Link href="/map">
-                        <Button variant="ghost" className="text-white hover:bg-white/20">
-                            <ArrowLeftIcon className="h-5 w-5 mr-2" />
-                            Back to Map
-                        </Button>
-                    </Link>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-10 text-white">
-                    <div className="container mx-auto max-w-5xl flex flex-col sm:flex-row justify-between items-end gap-4">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-8 text-white container mx-auto">
+                    <div className="flex items-end justify-between">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <Badge status={pet.status} className="text-sm py-1 px-3" />
-                                <span className="text-gray-300 text-sm">
-                                    Posted {formatDistanceToNow(new Date(pet.createdAt), { addSuffix: true })}
-                                </span>
-                            </div>
-                            <h1 className="text-4xl sm:text-5xl font-bold mb-2">{pet.name}</h1>
-                            <p className="text-xl text-gray-200">{pet.breed} • {pet.color}</p>
+                            <Badge status={pet.status} className="mb-4 text-sm px-3 py-1" />
+                            <h1 className="text-4xl font-bold">{pet.name}</h1>
+                            <p className="text-lg opacity-90 mt-1">{pet.breed} • {pet.color}</p>
                         </div>
-
-                        <div className="flex gap-3">
-                            <Button onClick={() => generatePoster(pet)} variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
-                                <PrinterIcon className="h-5 w-5 mr-2" />
-                                Print Poster
+                        <div className="hidden sm:flex gap-3">
+                            <Button variant="secondary" onClick={handleShare}>
+                                <ShareIcon className="h-5 w-5 mr-2" />
+                                Compartir
                             </Button>
-                            <Button onClick={() => setIsSightingModalOpen(true)} className="shadow-lg shadow-primary-500/50">
-                                Report Sighting
+                            <Button variant="outline" className="bg-white/10 text-white border-white/20 hover:bg-white/20" onClick={() => generatePoster(pet)}>
+                                <PrinterIcon className="h-5 w-5 mr-2" />
+                                Imprimir Cartel
                             </Button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 mt-8">
+            <div className="container mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Main Info */}
-                    <div className="lg:col-span-2 space-y-8">
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">About {pet.name}</h2>
-                            <p className="text-gray-600 whitespace-pre-line leading-relaxed">{pet.description}</p>
-
-                            {pet.reward && (
-                                <div className="mt-6 p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-4">
-                                    <div className="text-3xl">💰</div>
-                                    <div>
-                                        <p className="text-sm font-medium text-green-800">Reward Offered</p>
-                                        <p className="text-2xl font-bold text-green-700">${pet.reward}</p>
-                                    </div>
-                                </div>
-                            )}
+                    {/* Main Content */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Actions Bar (Mobile) */}
+                        <div className="bg-white rounded-xl shadow-sm p-4 flex sm:hidden justify-between gap-2">
+                            <Button variant="secondary" size="sm" className="flex-1" onClick={handleShare}>
+                                <ShareIcon className="h-4 w-4 mr-2" />
+                                Compartir
+                            </Button>
+                            <Button variant="outline" size="sm" className="flex-1" onClick={() => generatePoster(pet)}>
+                                <PrinterIcon className="h-4 w-4 mr-2" />
+                                Cartel
+                            </Button>
                         </div>
 
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">Last Seen Location</h2>
-                            <div className="flex items-center gap-2 text-gray-600 mb-4">
-                                <MapPinIcon className="h-5 w-5 text-primary-600" />
-                                <span>{pet.lastSeenLocation.address}</span>
+                        {/* Description */}
+                        <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Sobre {pet.name}</h2>
+                            <p className="text-gray-600 whitespace-pre-line">{pet.description}</p>
+
+                            <div className="mt-6 grid grid-cols-2 gap-4">
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <span className="text-sm text-gray-500 block">Visto por última vez</span>
+                                    <span className="font-medium text-gray-900 flex items-center mt-1">
+                                        <CalendarIcon className="h-4 w-4 mr-1 text-gray-400" />
+                                        {formatDistanceToNow(new Date(pet.lastSeenDate), { addSuffix: true, locale: es })}
+                                    </span>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                    <span className="text-sm text-gray-500 block">Ubicación</span>
+                                    <span className="font-medium text-gray-900 flex items-center mt-1">
+                                        <MapPinIcon className="h-4 w-4 mr-1 text-gray-400" />
+                                        {pet.lastSeenLocation.address.split(',')[0]}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="h-64 rounded-xl overflow-hidden border border-gray-200">
-                                <PetMap
-                                    pets={[pet]}
-                                    center={[pet.lastSeenLocation.lat, pet.lastSeenLocation.lng]}
-                                    zoom={15}
+                        </div>
+
+                        {/* Map */}
+                        <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8 overflow-hidden">
+                            <h2 className="text-xl font-bold text-gray-900 mb-4">Ubicación del Reporte</h2>
+                            <div className="h-80 rounded-lg overflow-hidden border border-gray-200">
+                                <MapComponent
+                                    center={pet.lastSeenLocation}
+                                    markers={[{ position: pet.lastSeenLocation, title: 'Última vez visto' }]}
                                 />
                             </div>
                         </div>
 
-                        {pet.sightings.length > 0 && (
-                            <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">Sighting History</h2>
-                                <div className="space-y-4">
-                                    {pet.sightings.map((sighting) => (
-                                        <div key={sighting.id} className="flex gap-4 p-4 bg-gray-50 rounded-xl">
-                                            <div className="flex-shrink-0 mt-1">
-                                                <MapPinIcon className="h-5 w-5 text-yellow-600" />
-                                            </div>
-                                            <div>
-                                                <p className="font-medium text-gray-900">Sighted near {sighting.location.address}</p>
-                                                <p className="text-sm text-gray-500 mt-1">
-                                                    {formatDistanceToNow(new Date(sighting.date), { addSuffix: true })}
-                                                </p>
-                                                {sighting.notes && (
-                                                    <p className="text-gray-600 mt-2 text-sm">{sighting.notes}</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                        {/* Sightings Timeline */}
+                        <div className="bg-white rounded-xl shadow-sm p-6 sm:p-8">
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-gray-900">Historial de Avistamientos</h2>
+                                <Button size="sm" onClick={() => setIsSightingModalOpen(true)}>
+                                    <EyeIcon className="h-4 w-4 mr-2" />
+                                    Reportar Avistamiento
+                                </Button>
                             </div>
-                        )}
+
+                            {pet.sightings && pet.sightings.length > 0 ? (
+                                <div className="flow-root">
+                                    <ul role="list" className="-mb-8">
+                                        {pet.sightings.map((sighting, eventIdx) => (
+                                            <li key={sighting.id}>
+                                                <div className="relative pb-8">
+                                                    {eventIdx !== pet.sightings.length - 1 ? (
+                                                        <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true" />
+                                                    ) : null}
+                                                    <div className="relative flex space-x-3">
+                                                        <div>
+                                                            <span className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center ring-8 ring-white">
+                                                                <EyeIcon className="h-5 w-5 text-white" aria-hidden="true" />
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
+                                                            <div>
+                                                                <p className="text-sm text-gray-500">
+                                                                    Avistado en <span className="font-medium text-gray-900">{sighting.location.address.split(',')[0]}</span>
+                                                                </p>
+                                                                {sighting.notes && (
+                                                                    <p className="mt-1 text-sm text-gray-600">"{sighting.notes}"</p>
+                                                                )}
+                                                            </div>
+                                                            <div className="whitespace-nowrap text-right text-sm text-gray-500">
+                                                                <time dateTime={sighting.date}>{formatDistanceToNow(new Date(sighting.date), { addSuffix: true, locale: es })}</time>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                                    <EyeIcon className="mx-auto h-12 w-12 text-gray-400" />
+                                    <h3 className="mt-2 text-sm font-medium text-gray-900">Sin avistamientos aún</h3>
+                                    <p className="mt-1 text-sm text-gray-500">Sé el primero en reportar si ves a {pet.name}.</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Sidebar */}
                     <div className="space-y-6">
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h2 className="text-lg font-bold text-gray-900 mb-4">Contact Owner</h2>
+                        {/* Contact Card */}
+                        <div className="bg-white rounded-xl shadow-sm p-6 border-t-4 border-primary-500">
+                            <h3 className="text-lg font-bold text-gray-900 mb-4">Contactar Dueño</h3>
                             <div className="space-y-4">
-                                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold">
+                                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                                    <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-bold text-xl">
                                         {pet.contactName.charAt(0)}
                                     </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900">{pet.contactName}</p>
-                                        <p className="text-xs text-gray-500">Owner</p>
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-gray-900">{pet.contactName}</p>
+                                        <p className="text-xs text-gray-500">Dueño</p>
                                     </div>
                                 </div>
 
-                                <a href={`tel:${pet.contactPhone}`} className="flex items-center justify-center gap-2 w-full py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors">
-                                    <PhoneIcon className="h-5 w-5" />
-                                    {pet.contactPhone}
+                                <a href={`tel:${pet.contactPhone}`} className="block">
+                                    <Button className="w-full justify-center">
+                                        <PhoneIcon className="h-5 w-5 mr-2" />
+                                        Llamar: {pet.contactPhone}
+                                    </Button>
                                 </a>
                             </div>
                         </div>
 
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                            <h2 className="text-lg font-bold text-gray-900 mb-4">Share Alert</h2>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Button variant="outline" size="sm" onClick={() => navigator.share({ title: `Help find ${pet.name}`, url: window.location.href })}>
-                                    <ShareIcon className="h-4 w-4 mr-2" />
-                                    Share
-                                </Button>
-                                <Button variant="outline" size="sm" onClick={() => generatePoster(pet)}>
-                                    <PrinterIcon className="h-4 w-4 mr-2" />
-                                    Poster
-                                </Button>
+                        {/* Reward Card */}
+                        {pet.reward && (
+                            <div className="bg-gradient-to-br from-red-500 to-pink-600 rounded-xl shadow-lg p-6 text-white text-center">
+                                <p className="text-sm font-medium opacity-90 uppercase tracking-wider">Recompensa</p>
+                                <p className="text-4xl font-extrabold mt-2">${pet.reward}</p>
+                                <p className="text-sm mt-2 opacity-90">Por regreso seguro</p>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>

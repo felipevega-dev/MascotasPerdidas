@@ -28,11 +28,19 @@ const createIcon = (status: string) => {
 
 interface PetMapProps {
     pets: Pet[];
-    center: [number, number];
-    zoom: number;
+    userLocation?: { lat: number; lng: number } | null;
 }
 
-export default function PetMap({ pets, center, zoom }: PetMapProps) {
+export default function PetMap({ pets, userLocation }: PetMapProps) {
+    // Default to a central location if no user location is available
+    const center: [number, number] = userLocation
+        ? [userLocation.lat, userLocation.lng]
+        : pets.length > 0
+            ? [pets[0].lastSeenLocation.lat, pets[0].lastSeenLocation.lng]
+            : [40.4168, -3.7038]; // Madrid, Spain as default
+
+    const zoom = 13;
+
     return (
         <MapContainer center={center} zoom={zoom} style={{ height: '100%', width: '100%' }}>
             <TileLayer

@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pets collection - allow read to everyone, write only authenticated users
+    match /pets/{petId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null &&
+        (resource.data.userId == request.auth.uid || request.auth.token.admin == true);
+    }
+
+    // Users collection (if needed in the future)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Comments/Updates for pets (if needed)
+    match /pets/{petId}/comments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null &&
+        resource.data.userId == request.auth.uid;
+    }
+  }
+}

@@ -1,3 +1,6 @@
+import { db } from '../lib/firebase';
+import { collection, addDoc, updateDoc, doc, getDocs, getDoc, query, orderBy } from 'firebase/firestore';
+
 export interface Sighting {
     id: string;
     location: { lat: number; lng: number; address: string };
@@ -17,7 +20,7 @@ export interface Pet {
     size: string;
     description: string;
     distinguishingFeatures: string;
-    photo: string; // base64 or URL
+    photo: string; // URL from Firebase Storage
     lastSeenLocation: { lat: number; lng: number; address: string };
     lastSeenDate: string;
     contactName: string;
@@ -28,40 +31,66 @@ export interface Pet {
     createdAt: string;
 }
 
-const STORAGE_KEY = 'pawalert_pets';
+const COLLECTION_NAME = 'pets';
 
-export const getPets = (): Pet[] => {
-    if (typeof window === 'undefined') return [];
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-};
-
-export const getPetById = (id: string): Pet | undefined => {
-    const pets = getPets();
-    return pets.find((pet) => pet.id === id);
-};
-
-export const savePet = (pet: Pet): void => {
-    const pets = getPets();
-    pets.push(pet);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pets));
-};
-
-export const updatePet = (updatedPet: Pet): void => {
-    const pets = getPets();
-    const index = pets.findIndex((p) => p.id === updatedPet.id);
-    if (index !== -1) {
-        pets[index] = updatedPet;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(pets));
+export const getPets = async (): Promise<Pet[]> => {
+    try {
+        const q = query(collection(db, COLLECTION_NAME), orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Pet));
+    } catch (error) {
+        console.error("Error getting pets: ", error);
+        return [];
     }
 };
 
-export const addSighting = (petId: string, sighting: Sighting): void => {
-    const pets = getPets();
-    const pet = pets.find((p) => p.id === petId);
-    if (pet) {
-        pet.sightings.push(sighting);
-        pet.status = 'sighted'; // Auto update status? Maybe optional
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(pets));
+export const getPetById = async (id: string): Promise<Pet | undefined> => {
+    try {
+        const docRef = doc(db, COLLECTION_NAME, id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            return { id: docSnap.id, ...docSnap.data() } as Pet;
+        }
+        return undefined;
+    } catch (error) {
+        console.error("Error getting pet: ", error);
+        return undefined;
     }
 };
+
+export const savePet = async (pet: Omit<Pet, 'id'>): Promise<string> => {
+    try {
+        const docRef = await addDoc(collection(db, COLLECTION_NAME), pet);
+        return docRef.id;
+    } catch (error) {
+        console.error("Error saving pet: ", error);
+        throw error;
+    }
+};
+
+export const updatePet = async (id: string, updatedFields: Partial<Pet>): Promise<void> => {
+    try {
+        const petRef = doc(db, COLLECTION_NAME, id);
+        await updateDoc(petRef, updatedFields);
+    } catch (error) {
+        console.error("Error updating pet: ", error);
+        throw error;
+    }
+};
+
+export const addSighting = async (petId: string, sighting: Sighting): Promise<void> => {
+    try {
+        const pet = await getPetById(petId);
+        if (pet) {
+            const updatedSightings = [...pet.sightings, sighting];
+            await updatePet(petId, {
+                sightings: updatedSightings,
+                status: 'sighted'
+            });
+        }
+    } catch (error) {
+        console.error("Error adding sighting: ", error);
+        throw error;
+    }
+};
+

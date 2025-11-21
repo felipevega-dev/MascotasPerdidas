@@ -13,9 +13,9 @@ export const Badge = ({ status, className }: BadgeProps) => {
     };
 
     const labels = {
-        lost: 'Lost',
-        sighted: 'Sighted',
-        found: 'Reunited',
+        lost: 'Perdido',
+        sighted: 'Visto',
+        found: 'Encontrado',
     };
 
     return (
