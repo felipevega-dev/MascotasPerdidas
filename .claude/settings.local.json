@@ -5,7 +5,8 @@
       "Bash(npm run build:*)",
       "Bash(firebase deploy:*)",
       "Bash(firebase projects:list:*)",
-      "Bash(firebase use:*)"
+      "Bash(firebase use:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

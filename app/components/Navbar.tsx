@@ -38,6 +38,14 @@ export default function Navbar() {
                             >
                                 Ver Alertas
                             </Link>
+                            {user && (
+                                <Link
+                                    href="/my-pets"
+                                    className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                                >
+                                    Mis Reportes
+                                </Link>
+                            )}
                             <Link
                                 href="/report"
                                 className="text-gray-600 hover:text-gray-900 font-medium transition-colors"

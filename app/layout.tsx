@@ -10,10 +10,32 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "PawAlert - Local Lost & Found Pet Finder",
-  description: "Hyper-local lost pet alerts. Connect with your neighborhood to reunite lost pets with their families.",
+  title: "PawAlert - Encuentra Mascotas Perdidas",
+  description: "Alertas hiperlocales de mascotas perdidas. Conecta con tu vecindario para reunir mascotas con sus familias. Reporta, busca y encuentra mascotas perdidas en tu zona.",
   applicationName: "PawAlert",
-  keywords: ["lost pet", "found pet", "pet finder", "local", "neighborhood", "cats", "dogs"],
+  keywords: ["mascota perdida", "perro perdido", "gato perdido", "encontrar mascota", "alerta mascota", "vecindario", "comunidad"],
+  openGraph: {
+    title: "PawAlert - Encuentra Mascotas Perdidas",
+    description: "Alertas hiperlocales de mascotas perdidas. Ayuda a reunir mascotas con sus familias.",
+    url: "https://pawale rt.app",
+    siteName: "PawAlert",
+    locale: "es_ES",
+    type: "website",
+    images: [
+      {
+        url: "/logo.png",
+        width: 1200,
+        height: 630,
+        alt: "PawAlert - Encuentra Mascotas Perdidas",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PawAlert - Encuentra Mascotas Perdidas",
+    description: "Alertas hiperlocales de mascotas perdidas. Ayuda a reunir mascotas con sus familias.",
+    images: ["/logo.png"],
+  },
 };
 
 export const viewport: Viewport = {

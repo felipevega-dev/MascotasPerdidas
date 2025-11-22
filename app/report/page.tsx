@@ -9,6 +9,7 @@ import { Button } from '../components/Button';
 import AuthModal from '../components/AuthModal';
 import { savePet, Pet } from '../utils/storage';
 import { ChevronLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
 
 export default function ReportMissingPet() {
     const router = useRouter();
@@ -38,7 +39,13 @@ export default function ReportMissingPet() {
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        // Convert date string to ISO format for lastSeenDate
+        if (name === 'lastSeenDate' && value) {
+            const date = new Date(value);
+            setFormData({ ...formData, [name]: date.toISOString() });
+        } else {
+            setFormData({ ...formData, [name]: value });
+        }
     };
 
     const nextStep = () => {
@@ -70,13 +77,14 @@ export default function ReportMissingPet() {
                 ...petData,
                 userId: user.uid,
                 contactName: user.displayName || formData.contactName || '',
-                lastSeenDate: new Date().toISOString(),
+                lastSeenDate: formData.lastSeenDate || new Date().toISOString(),
             });
 
+            toast.success('¡Reporte publicado exitosamente!');
             router.push(`/pet/${newPetId}`);
         } catch (error) {
             console.error('Error saving pet:', error);
-            alert('Hubo un error al guardar el reporte. Por favor intenta de nuevo.');
+            toast.error('Hubo un error al guardar el reporte. Por favor intenta de nuevo.');
             setIsSubmitting(false);
         } finally {
             setIsLoading(false);
@@ -131,12 +139,30 @@ export default function ReportMissingPet() {
                         {step === 1 && (
                             <div className="space-y-6">
                                 <div className="text-center">
-                                    <h2 className="text-2xl font-bold text-gray-900">Sube una Foto</h2>
-                                    <p className="mt-2 text-gray-500">Una foto clara ayuda a tus vecinos a identificar a tu mascota rápidamente.</p>
+                                    <h2 className="text-2xl font-bold text-gray-900">Información Básica</h2>
+                                    <p className="mt-2 text-gray-500">Comenzamos con una foto y la fecha en que se perdió tu mascota.</p>
                                 </div>
                                 <ImageUpload onImageSelect={handleImageSelect} initialImage={formData.photo} />
+
+                                <div>
+                                    <label htmlFor="lastSeenDate" className="block text-sm font-medium text-gray-700 mb-2">
+                                        ¿Cuándo se perdió tu mascota?
+                                    </label>
+                                    <input
+                                        type="date"
+                                        name="lastSeenDate"
+                                        id="lastSeenDate"
+                                        required
+                                        max={new Date().toISOString().split('T')[0]}
+                                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+                                        value={formData.lastSeenDate ? new Date(formData.lastSeenDate).toISOString().split('T')[0] : ''}
+                                        onChange={handleInputChange}
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">Esta información ayuda a la comunidad a saber qué tan reciente es el caso</p>
+                                </div>
+
                                 <div className="flex justify-end pt-6">
-                                    <Button onClick={nextStep} disabled={!formData.photo}>Siguiente: Detalles</Button>
+                                    <Button onClick={nextStep} disabled={!formData.photo || !formData.lastSeenDate}>Siguiente: Detalles</Button>
                                 </div>
                             </div>
                         )}

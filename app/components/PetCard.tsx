@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, differenceInDays } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { MapPinIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { Pet } from '../utils/storage';
 import { Badge } from './Badge';
@@ -21,6 +22,11 @@ export default function PetCard({ pet, userLocation }: PetCardProps) {
             pet.lastSeenLocation.lng
         )
         : null;
+
+    // Calculate days since lost
+    const daysLost = differenceInDays(new Date(), new Date(pet.lastSeenDate));
+    const daysLostText = daysLost === 0 ? 'Hoy' : daysLost === 1 ? 'Hace 1 día' : `Hace ${daysLost} días`;
+
     return (
         <Link href={`/pet/${pet.id}`} className="block group">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
@@ -44,12 +50,17 @@ export default function PetCard({ pet, userLocation }: PetCardProps) {
 
                 <div className="p-4">
                     <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
-                            {pet.name}
-                        </h3>
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors">
+                                {pet.name}
+                            </h3>
+                            <p className="text-xs font-medium text-red-600">
+                                {daysLostText}
+                            </p>
+                        </div>
                         {pet.reward && (
                             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-50 text-green-700">
-                                Reward: ${pet.reward}
+                                Recompensa: ${pet.reward}
                             </span>
                         )}
                     </div>
@@ -65,7 +76,7 @@ export default function PetCard({ pet, userLocation }: PetCardProps) {
                         </div>
                         <div className="flex items-center">
                             <ClockIcon className="h-4 w-4 mr-1 text-gray-400" />
-                            <span>{formatDistanceToNow(new Date(pet.lastSeenDate), { addSuffix: true })}</span>
+                            <span>{formatDistanceToNow(new Date(pet.lastSeenDate), { addSuffix: true, locale: es })}</span>
                         </div>
                         {distance !== null && (
                             <div className="flex items-center">

@@ -164,3 +164,30 @@ app/
 ✅ Changed reward field to number type
 ✅ Phone validation pattern added
 ✅ Map default location changed to Spain
+✅ Configured Next.js to allow Firebase Storage images
+
+## Sprint 1 Quick Wins (Completed)
+
+✅ **Toast Notifications** - Replaced all `alert()` with elegant toast notifications using react-hot-toast
+✅ **Lost Date Field** - Users can now specify when their pet was lost (date picker in Step 1)
+✅ **Days Lost Indicator** - Pet cards show "Hace X días" prominently in red
+✅ **Spanish Locale** - Date formatting now uses Spanish locale (date-fns/locale/es)
+✅ **Success Feedback** - Toast confirmation when pet report is published successfully
+
+### Dependencies Added
+- `react-hot-toast` - Toast notification system
+
+## Sprint 2 UX Advanced (Completed)
+
+✅ **Map Filters** - Dynamic filter panel with type/status/date filters, badge counter, and clear button
+✅ **My Reports Page** - Dashboard at `/my-pets` with stats and management of user's own reports
+✅ **Mark as Found** - Button to close cases when pets are found (only for pet owners)
+✅ **Open Graph Meta Tags** - Rich social sharing previews with logo, description, and locale
+✅ **Enhanced Share** - Personalized share text with pet details and fallback to clipboard
+
+### Key Features
+- Client-side filtering for instant results (type, status, date range)
+- Protected `/my-pets` route with authentication check
+- Stats dashboard showing Total/Perdidos/Encontrados counts
+- Social media optimized meta tags for Facebook, WhatsApp, Twitter
+- Web Share API with clipboard fallback for desktop

@@ -55,15 +55,21 @@ export default function PetDetailPage() {
     };
 
     const handleShare = async () => {
+        if (!pet) return;
+
+        const shareData = {
+            title: `Ayuda a encontrar a ${pet.name} - PawAlert`,
+            text: `${pet.name}, ${pet.breed} ${pet.color}, se perdió en ${pet.lastSeenLocation.address}. ¡Por favor ayuda a encontrarlo!`,
+            url: window.location.href,
+        };
+
         if (navigator.share) {
             try {
-                await navigator.share({
-                    title: `Ayuda a encontrar a ${pet?.name}`,
-                    text: `¡${pet?.name} está perdido! Por favor ayuda a encontrarlo.`,
-                    url: window.location.href,
-                });
+                await navigator.share(shareData);
             } catch (err) {
-                console.error('Error sharing:', err);
+                if ((err as Error).name !== 'AbortError') {
+                    console.error('Error sharing:', err);
+                }
             }
         } else {
             // Fallback to clipboard

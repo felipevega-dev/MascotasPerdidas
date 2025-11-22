@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Button } from './Button';
 import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import toast from 'react-hot-toast';
 
 interface ImageUploadProps {
     onImageSelect: (url: string | null) => void;
@@ -28,7 +29,7 @@ export default function ImageUpload({ onImageSelect, initialImage }: ImageUpload
             setPreview(downloadURL);
         } catch (error) {
             console.error("Error uploading image: ", error);
-            alert("Error al subir la imagen. Por favor intenta de nuevo.");
+            toast.error("Error al subir la imagen. Por favor intenta de nuevo.");
             // Clear preview on error
             setPreview(null);
             onImageSelect(null);
@@ -39,14 +40,14 @@ export default function ImageUpload({ onImageSelect, initialImage }: ImageUpload
 
     const handleFile = (file: File) => {
         if (!file || !file.type.startsWith('image/')) {
-            alert('Por favor selecciona un archivo de imagen válido.');
+            toast.error('Por favor selecciona un archivo de imagen válido.');
             return;
         }
 
         // Validate file size (5MB = 5 * 1024 * 1024 bytes)
         const maxSize = 5 * 1024 * 1024;
         if (file.size > maxSize) {
-            alert('El archivo es demasiado grande. El tamaño máximo permitido es 5MB.');
+            toast.error('El archivo es demasiado grande. El tamaño máximo permitido es 5MB.');
             return;
         }
 
