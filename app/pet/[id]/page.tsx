@@ -2,17 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { useAuth } from '../../contexts/AuthContext';
 import Image from 'next/image';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { ShareIcon, PrinterIcon, EyeIcon, PhoneIcon, MapPinIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { ShareIcon, PrinterIcon, EyeIcon, PhoneIcon, MapPinIcon, CalendarIcon, ChatBubbleLeftRightIcon, QrCodeIcon } from '@heroicons/react/24/outline';
 import { Button } from '../../components/Button';
 import { Badge } from '../../components/Badge';
 import SightingModal from '../../components/SightingModal';
+import ChatWindow from '../../components/ChatWindow';
+import ShareModal from '../../components/ShareModal';
 import { getPetById, Pet, addSighting } from '../../utils/storage';
+import { getOrCreateConversation } from '../../utils/messaging';
 import { generatePoster } from '../../utils/posterGenerator';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import toast from 'react-hot-toast';
 
 // Dynamic import for map to avoid SSR issues
 const PetMapWrapper = dynamic(() => import('../../components/PetMapWrapper'), {
@@ -22,9 +27,13 @@ const PetMapWrapper = dynamic(() => import('../../components/PetMapWrapper'), {
 
 export default function PetDetailPage() {
     const params = useParams();
+    const { user } = useAuth();
     const [pet, setPet] = useState<Pet | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSightingModalOpen, setIsSightingModalOpen] = useState(false);
+    const [chatConversationId, setChatConversationId] = useState<string | null>(null);
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     useEffect(() => {
         const fetchPet = async () => {
@@ -47,6 +56,28 @@ export default function PetDetailPage() {
             };
             await addSighting(pet.id, sighting);
 
+            // Send email notification to owner
+            try {
+                await fetch('/api/emails/sighting', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: pet.contactEmail,
+                        sightingData: {
+                            petName: pet.name,
+                            petBreed: pet.breed,
+                            location: data.location.address,
+                            notes: data.notes || 'Sin notas adicionales',
+                            ownerName: pet.contactName,
+                            petUrl: `${window.location.origin}/pet/${pet.id}`,
+                        },
+                    }),
+                });
+            } catch (error) {
+                console.error('Error sending email notification:', error);
+                // Don't block the flow if email fails
+            }
+
             // Refresh pet data
             const updatedPet = await getPetById(pet.id);
             setPet(updatedPet || null);
@@ -55,26 +86,29 @@ export default function PetDetailPage() {
     };
 
     const handleShare = async () => {
-        if (!pet) return;
+        setIsShareModalOpen(true);
+    };
 
-        const shareData = {
-            title: `Ayuda a encontrar a ${pet.name} - PawAlert`,
-            text: `${pet.name}, ${pet.breed} ${pet.color}, se perdió en ${pet.lastSeenLocation.address}. ¡Por favor ayuda a encontrarlo!`,
-            url: window.location.href,
-        };
+    const handleOpenChat = async () => {
+        if (!user) {
+            toast.error('Debes iniciar sesión para enviar mensajes');
+            return;
+        }
 
-        if (navigator.share) {
+        if (pet && pet.userId === user.uid) {
+            toast.error('No puedes chatear con tu propia publicación');
+            return;
+        }
+
+        if (pet && user) {
             try {
-                await navigator.share(shareData);
-            } catch (err) {
-                if ((err as Error).name !== 'AbortError') {
-                    console.error('Error sharing:', err);
-                }
+                const conversationId = await getOrCreateConversation(pet.id, pet.userId);
+                setChatConversationId(conversationId);
+                setIsChatOpen(true);
+            } catch (error) {
+                console.error('Error opening chat:', error);
+                toast.error('Error al abrir el chat');
             }
-        } else {
-            // Fallback to clipboard
-            navigator.clipboard.writeText(window.location.href);
-            alert('¡Enlace copiado al portapapeles!');
         }
     };
 
@@ -132,6 +166,12 @@ export default function PetDetailPage() {
                                 <PrinterIcon className="h-5 w-5 mr-2" />
                                 Imprimir Cartel
                             </Button>
+                            <Link href={`/pet/${pet.id}/qr`}>
+                                <Button variant="outline" className="bg-white/10 text-white border-white/20 hover:bg-white/20">
+                                    <QrCodeIcon className="h-5 w-5 mr-2" />
+                                    Ver QR
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -268,8 +308,13 @@ export default function PetDetailPage() {
                                     </div>
                                 </div>
 
+                                <Button className="w-full justify-center" onClick={handleOpenChat}>
+                                    <ChatBubbleLeftRightIcon className="h-5 w-5 mr-2" />
+                                    Enviar Mensaje
+                                </Button>
+
                                 <a href={`tel:${pet.contactPhone}`} className="block">
-                                    <Button className="w-full justify-center">
+                                    <Button variant="outline" className="w-full justify-center">
                                         <PhoneIcon className="h-5 w-5 mr-2" />
                                         Llamar: {pet.contactPhone}
                                     </Button>
@@ -294,6 +339,27 @@ export default function PetDetailPage() {
                 onClose={() => setIsSightingModalOpen(false)}
                 onSubmit={handleSightingSubmit}
             />
+
+            {/* Share Modal */}
+            {pet && (
+                <ShareModal
+                    isOpen={isShareModalOpen}
+                    onClose={() => setIsShareModalOpen(false)}
+                    pet={pet}
+                />
+            )}
+
+            {/* Chat Window */}
+            {isChatOpen && chatConversationId && pet && user && (
+                <ChatWindow
+                    conversationId={chatConversationId}
+                    petId={pet.id}
+                    petName={pet.name}
+                    otherUserId={pet.userId}
+                    otherUserName={pet.contactName}
+                    onClose={() => setIsChatOpen(false)}
+                />
+            )}
         </main>
     );
 }

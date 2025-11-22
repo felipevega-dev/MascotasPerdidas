@@ -19,8 +19,11 @@ const PetMap = dynamic(() => import('./PetMap'), {
 interface PetMapWrapperProps {
     pets: Pet[];
     userLocation?: { lat: number; lng: number } | null;
+    selectedPetId?: string;
+    onPetSelect?: (pet: Pet) => void;
+    onBoundsChange?: (bounds: any) => void;
 }
 
-export default function PetMapWrapper({ pets, userLocation }: PetMapWrapperProps) {
-    return <PetMap pets={pets} userLocation={userLocation} />;
+export default function PetMapWrapper({ pets, userLocation, selectedPetId, onPetSelect, onBoundsChange }: PetMapWrapperProps) {
+    return <PetMap pets={pets} userLocation={userLocation} selectedPetId={selectedPetId} onPetSelect={onPetSelect} onBoundsChange={onBoundsChange} />;
 }

@@ -18,20 +18,26 @@ const MapComponent = dynamic(() => import('./MapComponent'), {
 
 interface LocationPickerProps {
     onLocationSelect: (location: { lat: number; lng: number; address: string }) => void;
+    initialLocation?: { lat: number; lng: number; address: string };
 }
 
-export default function LocationPicker({ onLocationSelect }: LocationPickerProps) {
-    const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-    const [address, setAddress] = useState<string>('');
+export default function LocationPicker({ onLocationSelect, initialLocation }: LocationPickerProps) {
+    const [location, setLocation] = useState<{ lat: number; lng: number } | null>(
+        initialLocation ? { lat: initialLocation.lat, lng: initialLocation.lng } : null
+    );
+    const [address, setAddress] = useState<string>(initialLocation?.address || '');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>('');
-    // Default to Spain (Madrid)
-    const [mapCenter, setMapCenter] = useState<[number, number]>([40.4168, -3.7038]);
+    const [mapCenter, setMapCenter] = useState<[number, number]>(
+        initialLocation ? [initialLocation.lat, initialLocation.lng] : [40.4168, -3.7038]
+    );
 
     useEffect(() => {
-        // Try to get user's location on mount
-        handleGetLocation();
-    }, []);
+        // Only try to get user's location if no initial location provided
+        if (!initialLocation) {
+            handleGetLocation();
+        }
+    }, [initialLocation]);
 
     const handleGetLocation = async () => {
         setIsLoading(true);

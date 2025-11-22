@@ -5,16 +5,20 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { getPets, updatePet, Pet } from '../utils/storage';
 import PetCard from '../components/PetCard';
+import SkeletonCard from '../components/SkeletonCard';
+import EmptyState from '../components/EmptyState';
 import { Button } from '../components/Button';
 import Link from 'next/link';
-import { PlusIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, CheckCircleIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import EditPetModal from '../components/EditPetModal';
 
 export default function MyPetsPage() {
     const { user, loading: authLoading } = useAuth();
     const router = useRouter();
     const [myPets, setMyPets] = useState<Pet[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [editingPet, setEditingPet] = useState<Pet | null>(null);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -45,9 +49,32 @@ export default function MyPetsPage() {
     };
 
     const markAsFound = async (petId: string) => {
+        const pet = myPets.find(p => p.id === petId);
+        if (!pet) return;
+
         try {
             await updatePet(petId, { status: 'found' });
             toast.success('¡Mascota marcada como encontrada!');
+            
+            // Send email notification
+            try {
+                await fetch('/api/emails/pet-found', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: pet.contactEmail,
+                        petData: {
+                            name: pet.name,
+                            breed: pet.breed,
+                            contactName: pet.contactName,
+                            petUrl: `${window.location.origin}/pet/${pet.id}`,
+                        },
+                    }),
+                });
+            } catch (emailError) {
+                console.error('Error sending email notification:', emailError);
+            }
+            
             loadMyPets(); // Reload
         } catch (error) {
             console.error('Error updating pet:', error);
@@ -55,11 +82,43 @@ export default function MyPetsPage() {
         }
     };
 
+    const handleEditPet = (pet: Pet) => {
+        setEditingPet(pet);
+    };
+
+    const handleSaveEdit = async (updatedData: Partial<Pet>) => {
+        if (!editingPet) return;
+        
+        try {
+            await updatePet(editingPet.id, updatedData);
+            // Update local state immediately
+            setMyPets(prev => prev.map(p => 
+                p.id === editingPet.id ? { ...p, ...updatedData } : p
+            ));
+            setEditingPet(null);
+        } catch (error) {
+            console.error('Error updating pet:', error);
+            throw error;
+        }
+    };
+
     if (authLoading || isLoading) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            </div>
+            <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-2"></div>
+                            <div className="h-4 w-64 bg-gray-200 rounded animate-pulse"></div>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...Array(3)].map((_, i) => (
+                            <SkeletonCard key={i} />
+                        ))}
+                    </div>
+                </div>
+            </main>
         );
     }
 
@@ -82,25 +141,19 @@ export default function MyPetsPage() {
                 </div>
 
                 {myPets.length === 0 ? (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                        <div className="max-w-md mx-auto">
-                            <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                                <PlusIcon className="h-8 w-8 text-gray-400" />
-                            </div>
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                No tienes reportes aún
-                            </h3>
-                            <p className="text-gray-500 mb-6">
-                                Crea tu primer reporte para ayudar a encontrar a tu mascota perdida
-                            </p>
+                    <EmptyState
+                        icon={<PlusIcon className="h-8 w-8 text-gray-400" />}
+                        title="No tienes reportes aún"
+                        description="Crea tu primer reporte para ayudar a encontrar a tu mascota perdida"
+                        action={
                             <Link href="/report">
                                 <Button>
                                     <PlusIcon className="h-5 w-5 mr-2" />
                                     Crear Primer Reporte
                                 </Button>
                             </Link>
-                        </div>
-                    </div>
+                        }
+                    />
                 ) : (
                     <div className="space-y-6">
                         {/* Stats */}
@@ -130,25 +183,44 @@ export default function MyPetsPage() {
                             {myPets.map((pet) => (
                                 <div key={pet.id} className="relative">
                                     <PetCard pet={pet} />
-                                    {pet.status !== 'found' && (
-                                        <div className="mt-3">
+                                    <div className="mt-3 flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                            onClick={() => handleEditPet(pet)}
+                                        >
+                                            <PencilSquareIcon className="h-4 w-4 mr-2" />
+                                            Editar
+                                        </Button>
+                                        {pet.status !== 'found' && (
                                             <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="w-full"
+                                                className="flex-1"
                                                 onClick={() => markAsFound(pet.id)}
                                             >
                                                 <CheckCircleIcon className="h-4 w-4 mr-2" />
-                                                Marcar como Encontrado
+                                                Encontrado
                                             </Button>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* Edit Modal */}
+            {editingPet && (
+                <EditPetModal
+                    isOpen={!!editingPet}
+                    onClose={() => setEditingPet(null)}
+                    pet={editingPet}
+                    onSave={handleSaveEdit}
+                />
+            )}
         </main>
     );
 }

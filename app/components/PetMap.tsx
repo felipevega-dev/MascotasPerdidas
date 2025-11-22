@@ -1,6 +1,7 @@
 'use client';
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Pet } from '../utils/storage';
@@ -29,9 +30,51 @@ const createIcon = (status: string) => {
 interface PetMapProps {
     pets: Pet[];
     userLocation?: { lat: number; lng: number } | null;
+    selectedPetId?: string;
+    onPetSelect?: (pet: Pet) => void;
+    onBoundsChange?: (bounds: any) => void;
 }
 
-export default function PetMap({ pets, userLocation }: PetMapProps) {
+// Component to handle map events
+function MapEvents({ onBoundsChange }: { onBoundsChange?: (bounds: any) => void }) {
+    const map = useMapEvents({
+        moveend: () => {
+            if (onBoundsChange) {
+                const bounds = map.getBounds();
+                onBoundsChange({
+                    north: bounds.getNorth(),
+                    south: bounds.getSouth(),
+                    east: bounds.getEast(),
+                    west: bounds.getWest(),
+                });
+            }
+        },
+    });
+
+    return null;
+}
+
+// Component to handle selected pet highlighting
+function SelectedPetHandler({ selectedPetId, pets }: { selectedPetId?: string; pets: Pet[] }) {
+    const map = useMap();
+
+    useEffect(() => {
+        if (selectedPetId) {
+            const selectedPet = pets.find(p => p.id === selectedPetId);
+            if (selectedPet) {
+                map.setView(
+                    [selectedPet.lastSeenLocation.lat, selectedPet.lastSeenLocation.lng],
+                    15,
+                    { animate: true }
+                );
+            }
+        }
+    }, [selectedPetId, pets, map]);
+
+    return null;
+}
+
+export default function PetMap({ pets, userLocation, selectedPetId, onPetSelect, onBoundsChange }: PetMapProps) {
     // Default to a central location if no user location is available
     const center: [number, number] = userLocation
         ? [userLocation.lat, userLocation.lng]
@@ -47,11 +90,20 @@ export default function PetMap({ pets, userLocation }: PetMapProps) {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            <MapEvents onBoundsChange={onBoundsChange} />
+            <SelectedPetHandler selectedPetId={selectedPetId} pets={pets} />
             {pets.map((pet) => (
                 <Marker
                     key={pet.id}
                     position={[pet.lastSeenLocation.lat, pet.lastSeenLocation.lng]}
                     icon={createIcon(pet.status)}
+                    eventHandlers={{
+                        click: () => {
+                            if (onPetSelect) {
+                                onPetSelect(pet);
+                            }
+                        }
+                    }}
                 >
                     <Popup>
                         <div className="w-48">
