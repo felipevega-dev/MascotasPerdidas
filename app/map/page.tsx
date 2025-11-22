@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MapIcon, ListBulletIcon, FunnelIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { MapIcon, ListBulletIcon, FunnelIcon, PlusIcon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { Button } from '../components/Button';
 import PetMapWrapper from '../components/PetMapWrapper';
 import PetCard from '../components/PetCard';
@@ -25,6 +25,7 @@ export default function MapPage() {
     const [typeFilter, setTypeFilter] = useState<PetType>('all');
     const [statusFilter, setStatusFilter] = useState<PetStatus>('all');
     const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     useEffect(() => {
         const fetchData = async () => {
@@ -62,6 +63,18 @@ export default function MapPage() {
     useEffect(() => {
         let filtered = [...pets];
 
+        // Search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            filtered = filtered.filter(pet =>
+                pet.name.toLowerCase().includes(query) ||
+                pet.breed.toLowerCase().includes(query) ||
+                pet.color.toLowerCase().includes(query) ||
+                pet.lastSeenLocation.address.toLowerCase().includes(query) ||
+                (pet.description && pet.description.toLowerCase().includes(query))
+            );
+        }
+
         // Type filter
         if (typeFilter !== 'all') {
             filtered = filtered.filter(pet => pet.type === typeFilter);
@@ -94,23 +107,25 @@ export default function MapPage() {
         }
 
         setFilteredPets(filtered);
-    }, [pets, typeFilter, statusFilter, dateFilter]);
+    }, [pets, typeFilter, statusFilter, dateFilter, searchQuery]);
 
     const clearFilters = () => {
         setTypeFilter('all');
         setStatusFilter('all');
         setDateFilter('all');
+        setSearchQuery('');
     };
 
-    const hasActiveFilters = typeFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all';
+    const hasActiveFilters = typeFilter !== 'all' || statusFilter !== 'all' || dateFilter !== 'all' || searchQuery.trim() !== '';
 
     return (
         <main className="h-[calc(100vh-64px)] flex flex-col">
             {/* Header / Controls */}
-            <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shrink-0">
-                <h1 className="text-xl font-bold text-gray-900">Alertas Activas</h1>
+            <div className="bg-white border-b border-gray-200 shrink-0">
+                <div className="px-4 py-3 flex items-center justify-between">
+                    <h1 className="text-xl font-bold text-gray-900">Alertas Activas</h1>
 
-                <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2">
                     <div className="flex bg-gray-100 rounded-lg p-1">
                         <button
                             onClick={() => setViewMode('map')}
@@ -143,7 +158,7 @@ export default function MapPage() {
                         Filtros
                         {hasActiveFilters && (
                             <span className="ml-2 bg-white text-primary-600 rounded-full px-2 py-0.5 text-xs font-bold">
-                                {[typeFilter !== 'all', statusFilter !== 'all', dateFilter !== 'all'].filter(Boolean).length}
+                                {[typeFilter !== 'all', statusFilter !== 'all', dateFilter !== 'all', searchQuery.trim() !== ''].filter(Boolean).length}
                             </span>
                         )}
                     </Button>
@@ -154,6 +169,29 @@ export default function MapPage() {
                             Reportar Mascota
                         </Button>
                     </Link>
+                    </div>
+                </div>
+
+                {/* Search Bar */}
+                <div className="px-4 pb-3">
+                    <div className="relative max-w-md">
+                        <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Buscar por nombre, raza, color o ubicación..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                            >
+                                <XMarkIcon className="h-5 w-5" />
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 

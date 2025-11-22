@@ -7,6 +7,7 @@ import { Button } from './Button';
 import { storage } from '../lib/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import toast from 'react-hot-toast';
+import imageCompression from 'browser-image-compression';
 
 interface ImageUploadProps {
     onImageSelect: (url: string | null) => void;
@@ -19,11 +20,32 @@ export default function ImageUpload({ onImageSelect, initialImage }: ImageUpload
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const compressImage = async (file: File): Promise<File> => {
+        const options = {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+            fileType: 'image/jpeg' as const,
+        };
+
+        try {
+            const compressedFile = await imageCompression(file, options);
+            console.log(`Original size: ${(file.size / 1024 / 1024).toFixed(2)}MB, Compressed size: ${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`);
+            return compressedFile;
+        } catch (error) {
+            console.error('Error compressing image:', error);
+            return file; // Return original if compression fails
+        }
+    };
+
     const uploadImage = async (file: File) => {
         setIsUploading(true);
         try {
+            // Compress image before uploading
+            const compressedFile = await compressImage(file);
+
             const storageRef = ref(storage, `pets/${Date.now()}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
+            const snapshot = await uploadBytes(storageRef, compressedFile);
             const downloadURL = await getDownloadURL(snapshot.ref);
             onImageSelect(downloadURL);
             setPreview(downloadURL);

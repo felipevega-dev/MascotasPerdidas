@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import ImageUpload from '../components/ImageUpload';
@@ -10,6 +10,8 @@ import AuthModal from '../components/AuthModal';
 import { savePet, Pet } from '../utils/storage';
 import { ChevronLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+
+const FORM_STORAGE_KEY = 'pawAlert_draftReport';
 
 export default function ReportMissingPet() {
     const router = useRouter();
@@ -24,6 +26,29 @@ export default function ReportMissingPet() {
         sightings: [],
         createdAt: new Date().toISOString(),
     });
+
+    // Load saved draft from localStorage on mount
+    useEffect(() => {
+        const savedDraft = localStorage.getItem(FORM_STORAGE_KEY);
+        if (savedDraft) {
+            try {
+                const parsedDraft = JSON.parse(savedDraft);
+                setFormData(parsedDraft);
+                toast.success('Borrador restaurado');
+            } catch (error) {
+                console.error('Error parsing saved draft:', error);
+                localStorage.removeItem(FORM_STORAGE_KEY);
+            }
+        }
+    }, []);
+
+    // Save draft to localStorage whenever formData changes
+    useEffect(() => {
+        // Only save if there's actual data beyond the initial state
+        if (formData.name || formData.photo || formData.breed) {
+            localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
+        }
+    }, [formData]);
 
     const handleImageSelect = (url: string | null) => {
         if (url) {
@@ -59,6 +84,17 @@ export default function ReportMissingPet() {
 
     const prevStep = () => setStep(step - 1);
 
+    const clearDraft = () => {
+        localStorage.removeItem(FORM_STORAGE_KEY);
+        setFormData({
+            status: 'lost',
+            sightings: [],
+            createdAt: new Date().toISOString(),
+        });
+        setStep(1);
+        toast.success('Borrador eliminado');
+    };
+
     const handleSubmit = async () => {
         if (isSubmitting) return;
 
@@ -79,6 +115,9 @@ export default function ReportMissingPet() {
                 contactName: user.displayName || formData.contactName || '',
                 lastSeenDate: formData.lastSeenDate || new Date().toISOString(),
             });
+
+            // Clear localStorage draft after successful submission
+            localStorage.removeItem(FORM_STORAGE_KEY);
 
             toast.success('¡Reporte publicado exitosamente!');
             router.push(`/pet/${newPetId}`);

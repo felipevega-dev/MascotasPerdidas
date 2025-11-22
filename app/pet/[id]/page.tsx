@@ -213,12 +213,23 @@ export default function PetDetailPage() {
                                                             </span>
                                                         </div>
                                                         <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
-                                                            <div>
+                                                            <div className="flex-1">
                                                                 <p className="text-sm text-gray-500">
                                                                     Avistado en <span className="font-medium text-gray-900">{sighting.location.address.split(',')[0]}</span>
                                                                 </p>
                                                                 {sighting.notes && (
                                                                     <p className="mt-1 text-sm text-gray-600">"{sighting.notes}"</p>
+                                                                )}
+                                                                {sighting.photo && (
+                                                                    <div className="mt-2">
+                                                                        <Image
+                                                                            src={sighting.photo}
+                                                                            alt="Foto del avistamiento"
+                                                                            width={200}
+                                                                            height={150}
+                                                                            className="rounded-lg object-cover border border-gray-200"
+                                                                        />
+                                                                    </div>
                                                                 )}
                                                             </div>
                                                             <div className="whitespace-nowrap text-right text-sm text-gray-500">
