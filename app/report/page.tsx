@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
-import ImageUpload from '../components/ImageUpload';
+import MultipleImageUpload from '../components/MultipleImageUpload';
 import LocationPicker from '../components/LocationPicker';
 import { Button } from '../components/Button';
 import AuthModal from '../components/AuthModal';
@@ -24,6 +24,8 @@ export default function ReportMissingPet() {
     const [formData, setFormData] = useState<Partial<Pet>>({
         status: 'lost',
         sightings: [],
+        photos: [],
+        rewardCurrency: 'USD',
         createdAt: new Date().toISOString(),
     });
 
@@ -50,12 +52,12 @@ export default function ReportMissingPet() {
         }
     }, [formData]);
 
-    const handleImageSelect = (url: string | null) => {
-        if (url) {
-            setFormData({ ...formData, photo: url });
-        } else {
-            setFormData({ ...formData, photo: undefined });
-        }
+    const handleImagesChange = (images: string[]) => {
+        setFormData({ 
+            ...formData, 
+            photos: images,
+            photo: images[0] || '' // Primary photo is the first one
+        });
     };
 
     const handleLocationSelect = (location: { lat: number; lng: number; address: string }) => {
@@ -179,9 +181,14 @@ export default function ReportMissingPet() {
                             <div className="space-y-6">
                                 <div className="text-center">
                                     <h2 className="text-2xl font-bold text-gray-900">Información Básica</h2>
-                                    <p className="mt-2 text-gray-500">Comenzamos con una foto y la fecha en que se perdió tu mascota.</p>
+                                    <p className="mt-2 text-gray-500">Comenzamos con fotos y la fecha en que se perdió tu mascota.</p>
                                 </div>
-                                <ImageUpload onImageSelect={handleImageSelect} initialImage={formData.photo} />
+                                <MultipleImageUpload 
+                                    images={formData.photos || []} 
+                                    onImagesChange={handleImagesChange}
+                                    maxImages={5}
+                                    label="Fotos de la mascota (máximo 5)"
+                                />
 
                                 <div>
                                     <label htmlFor="lastSeenDate" className="block text-sm font-medium text-gray-700 mb-2">
@@ -201,7 +208,7 @@ export default function ReportMissingPet() {
                                 </div>
 
                                 <div className="flex justify-end pt-6">
-                                    <Button onClick={nextStep} disabled={!formData.photo || !formData.lastSeenDate}>Siguiente: Detalles</Button>
+                                    <Button onClick={nextStep} disabled={!formData.photos || formData.photos.length === 0 || !formData.lastSeenDate}>Siguiente: Detalles</Button>
                                 </div>
                             </div>
                         )}
@@ -392,23 +399,34 @@ export default function ReportMissingPet() {
                                     </div>
 
                                     <div className="sm:col-span-6">
-                                        <label htmlFor="reward" className="block text-sm font-medium text-gray-700">Recompensa (Opcional)</label>
-                                        <div className="mt-1 relative rounded-md shadow-sm">
-                                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <span className="text-gray-500 sm:text-sm">$</span>
-                                            </div>
+                                        <label htmlFor="reward" className="block text-sm font-medium text-gray-700 mb-2">Recompensa (Opcional)</label>
+                                        <div className="flex gap-3">
+                                            <select
+                                                name="rewardCurrency"
+                                                id="rewardCurrency"
+                                                className="block w-32 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+                                                value={formData.rewardCurrency || 'USD'}
+                                                onChange={handleInputChange}
+                                            >
+                                                <option value="USD">USD $</option>
+                                                <option value="MXN">MXN $</option>
+                                                <option value="EUR">EUR €</option>
+                                                <option value="GBP">GBP £</option>
+                                                <option value="COP">COP $</option>
+                                                <option value="ARS">ARS $</option>
+                                                <option value="CLP">CLP $</option>
+                                            </select>
                                             <input
-                                                type="number"
+                                                type="text"
                                                 name="reward"
                                                 id="reward"
-                                                min="0"
-                                                step="0.01"
-                                                className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md border p-2"
-                                                placeholder="0.00"
+                                                className="flex-1 focus:ring-primary-500 focus:border-primary-500 block w-full sm:text-sm border-gray-300 rounded-md border p-2"
+                                                placeholder="Ejemplo: 50,000 o 50.000"
                                                 value={formData.reward || ''}
                                                 onChange={handleInputChange}
                                             />
                                         </div>
+                                        <p className="mt-1 text-xs text-gray-500">Usa comas o puntos como separador de miles según tu preferencia</p>
                                     </div>
                                 </div>
 

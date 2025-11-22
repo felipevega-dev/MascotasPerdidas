@@ -21,13 +21,15 @@ export interface Pet {
     size: string;
     description: string;
     distinguishingFeatures: string;
-    photo: string; // URL from Firebase Storage
+    photo: string; // Primary photo URL from Firebase Storage
+    photos?: string[]; // Multiple photos (optional for backward compatibility)
     lastSeenLocation: { lat: number; lng: number; address: string };
     lastSeenDate: string;
     contactName: string;
     contactPhone: string;
     contactEmail: string;
     reward?: string;
+    rewardCurrency?: string; // Currency code (USD, EUR, MXN, etc.)
     sightings: Sighting[];
     createdAt: string;
 }
