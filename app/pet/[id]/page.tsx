@@ -102,7 +102,14 @@ export default function PetDetailPage() {
 
         if (pet && user) {
             try {
-                const conversationId = await getOrCreateConversation(pet.id, pet.userId);
+                const conversationId = await getOrCreateConversation(
+                    pet.id,
+                    pet.name,
+                    pet.userId,
+                    pet.contactName,
+                    user.uid,
+                    user.displayName || user.email || 'Usuario'
+                );
                 setChatConversationId(conversationId);
                 setIsChatOpen(true);
             } catch (error) {
