@@ -1,6 +1,9 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Only initialize Resend if API key is available
+const resend = process.env.RESEND_API_KEY 
+    ? new Resend(process.env.RESEND_API_KEY)
+    : null;
 
 export interface EmailOptions {
     to: string;
@@ -9,6 +12,12 @@ export interface EmailOptions {
 }
 
 export async function sendEmail({ to, subject, html }: EmailOptions) {
+    // Check if Resend is configured
+    if (!resend) {
+        console.warn('Resend API key not configured. Email not sent.');
+        return { success: false, error: 'Resend API key not configured' };
+    }
+
     try {
         const data = await resend.emails.send({
             from: 'PawAlert <noreply@pawalert.app>',
