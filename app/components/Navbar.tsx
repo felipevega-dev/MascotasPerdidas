@@ -21,7 +21,7 @@ export default function Navbar() {
                         <Link href="/" className="flex items-center space-x-3">
                             <div className="relative w-10 h-10">
                                 <Image
-                                    src="/Gemini_Generated_Image_68kun68kun68kun6.jpg"
+                                    src="/logo.png"
                                     alt="PawAlert"
                                     fill
                                     className="object-contain rounded-full"

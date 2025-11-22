@@ -189,16 +189,34 @@ export default function ReportMissingPet() {
                                         />
                                     </div>
 
-                                    <div className="sm:col-span-6">
+                                    <div className="sm:col-span-3">
                                         <label htmlFor="color" className="block text-sm font-medium text-gray-700">Color</label>
                                         <input
                                             type="text"
                                             name="color"
                                             id="color"
+                                            required
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
                                             value={formData.color || ''}
                                             onChange={handleInputChange}
                                         />
+                                    </div>
+
+                                    <div className="sm:col-span-3">
+                                        <label htmlFor="size" className="block text-sm font-medium text-gray-700">Tamaño</label>
+                                        <select
+                                            id="size"
+                                            name="size"
+                                            required
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+                                            value={formData.size || ''}
+                                            onChange={handleInputChange}
+                                        >
+                                            <option value="">Selecciona un tamaño</option>
+                                            <option value="Pequeño">Pequeño (0-10 kg)</option>
+                                            <option value="Mediano">Mediano (10-25 kg)</option>
+                                            <option value="Grande">Grande (25+ kg)</option>
+                                        </select>
                                     </div>
 
                                     <div className="sm:col-span-6">
@@ -207,8 +225,24 @@ export default function ReportMissingPet() {
                                             id="description"
                                             name="description"
                                             rows={3}
+                                            required
+                                            placeholder="Describe a tu mascota (comportamiento, personalidad, etc.)"
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
                                             value={formData.description || ''}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+
+                                    <div className="sm:col-span-6">
+                                        <label htmlFor="distinguishingFeatures" className="block text-sm font-medium text-gray-700">Señas Particulares</label>
+                                        <textarea
+                                            id="distinguishingFeatures"
+                                            name="distinguishingFeatures"
+                                            rows={2}
+                                            required
+                                            placeholder="Cicatrices, manchas únicas, collar especial, etc."
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+                                            value={formData.distinguishingFeatures || ''}
                                             onChange={handleInputChange}
                                         />
                                     </div>
@@ -216,7 +250,12 @@ export default function ReportMissingPet() {
 
                                 <div className="flex justify-between pt-6">
                                     <Button variant="ghost" onClick={prevStep}>Atrás</Button>
-                                    <Button onClick={nextStep} disabled={!formData.name}>Siguiente: Ubicación</Button>
+                                    <Button
+                                        onClick={nextStep}
+                                        disabled={!formData.name || !formData.breed || !formData.color || !formData.size || !formData.description || !formData.distinguishingFeatures}
+                                    >
+                                        Siguiente: Ubicación
+                                    </Button>
                                 </div>
                             </div>
                         )}
@@ -265,8 +304,24 @@ export default function ReportMissingPet() {
                                             name="contactPhone"
                                             id="contactPhone"
                                             required
+                                            pattern="[0-9+\-\s()]{8,}"
+                                            placeholder="+34 123 456 789"
                                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
                                             value={formData.contactPhone || ''}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+
+                                    <div className="sm:col-span-6">
+                                        <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700">Email</label>
+                                        <input
+                                            type="email"
+                                            name="contactEmail"
+                                            id="contactEmail"
+                                            required
+                                            placeholder="tu@email.com"
+                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm border p-2"
+                                            value={formData.contactEmail || ''}
                                             onChange={handleInputChange}
                                         />
                                     </div>
@@ -278,9 +333,11 @@ export default function ReportMissingPet() {
                                                 <span className="text-gray-500 sm:text-sm">$</span>
                                             </div>
                                             <input
-                                                type="text"
+                                                type="number"
                                                 name="reward"
                                                 id="reward"
+                                                min="0"
+                                                step="0.01"
                                                 className="focus:ring-primary-500 focus:border-primary-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md border p-2"
                                                 placeholder="0.00"
                                                 value={formData.reward || ''}
@@ -292,7 +349,11 @@ export default function ReportMissingPet() {
 
                                 <div className="flex justify-between pt-6">
                                     <Button variant="ghost" onClick={prevStep}>Atrás</Button>
-                                    <Button onClick={handleSubmit} isLoading={isLoading || isSubmitting} disabled={!formData.contactName || !formData.contactPhone || isSubmitting}>
+                                    <Button
+                                        onClick={handleSubmit}
+                                        isLoading={isLoading || isSubmitting}
+                                        disabled={!formData.contactName || !formData.contactPhone || !formData.contactEmail || isSubmitting}
+                                    >
                                         Publicar Reporte
                                     </Button>
                                 </div>

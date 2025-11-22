@@ -29,23 +29,36 @@ export default function ImageUpload({ onImageSelect, initialImage }: ImageUpload
         } catch (error) {
             console.error("Error uploading image: ", error);
             alert("Error al subir la imagen. Por favor intenta de nuevo.");
+            // Clear preview on error
+            setPreview(null);
+            onImageSelect(null);
         } finally {
             setIsUploading(false);
         }
     };
 
     const handleFile = (file: File) => {
-        if (file && file.type.startsWith('image/')) {
-            // Show local preview immediately
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setPreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-
-            // Upload to Firebase
-            uploadImage(file);
+        if (!file || !file.type.startsWith('image/')) {
+            alert('Por favor selecciona un archivo de imagen válido.');
+            return;
         }
+
+        // Validate file size (5MB = 5 * 1024 * 1024 bytes)
+        const maxSize = 5 * 1024 * 1024;
+        if (file.size > maxSize) {
+            alert('El archivo es demasiado grande. El tamaño máximo permitido es 5MB.');
+            return;
+        }
+
+        // Show local preview immediately
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to Firebase
+        uploadImage(file);
     };
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -139,7 +152,7 @@ export default function ImageUpload({ onImageSelect, initialImage }: ImageUpload
                             Arrastra y suelta o haz clic para seleccionar
                         </p>
                         <p className="text-xs text-gray-400 mt-4">
-                            PNG, JPG, GIF hasta 10MB
+                            PNG, JPG, GIF hasta 5MB
                         </p>
                     </div>
                 </div>

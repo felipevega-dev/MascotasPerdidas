@@ -24,7 +24,9 @@ export default function LocationPicker({ onLocationSelect }: LocationPickerProps
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [address, setAddress] = useState<string>('');
     const [isLoading, setIsLoading] = useState(false);
-    const [mapCenter, setMapCenter] = useState<[number, number]>([51.505, -0.09]); // Default to London, but will update
+    const [error, setError] = useState<string>('');
+    // Default to Spain (Madrid)
+    const [mapCenter, setMapCenter] = useState<[number, number]>([40.4168, -3.7038]);
 
     useEffect(() => {
         // Try to get user's location on mount
@@ -33,6 +35,7 @@ export default function LocationPicker({ onLocationSelect }: LocationPickerProps
 
     const handleGetLocation = async () => {
         setIsLoading(true);
+        setError('');
         try {
             const coords = await getCurrentLocation();
             const newLocation = { lat: coords.lat, lng: coords.lng };
@@ -44,7 +47,7 @@ export default function LocationPicker({ onLocationSelect }: LocationPickerProps
             onLocationSelect({ ...newLocation, address: addr });
         } catch (error) {
             console.error('Error getting location:', error);
-            // Fallback or show error
+            setError('No se pudo obtener tu ubicación. Por favor, haz clic en el mapa para seleccionar la ubicación manualmente.');
         } finally {
             setIsLoading(false);
         }
@@ -61,20 +64,32 @@ export default function LocationPicker({ onLocationSelect }: LocationPickerProps
 
     return (
         <div className="w-full space-y-4">
-            <div className="flex items-center gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleGetLocation}
-                    isLoading={isLoading}
-                    size="sm"
-                >
-                    <MapPinIcon className="h-4 w-4 mr-2" />
-                    Use My Current Location
-                </Button>
-                {address && (
-                    <p className="text-sm text-gray-600 truncate flex-1">
-                        Selected: <span className="font-medium text-gray-900">{address}</span>
+            <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleGetLocation}
+                        isLoading={isLoading}
+                        size="sm"
+                    >
+                        <MapPinIcon className="h-4 w-4 mr-2" />
+                        Usar Mi Ubicación Actual
+                    </Button>
+                    {address && (
+                        <p className="text-sm text-gray-600 truncate flex-1">
+                            Seleccionado: <span className="font-medium text-gray-900">{address}</span>
+                        </p>
+                    )}
+                </div>
+                {error && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                        <p className="text-sm text-yellow-800">{error}</p>
+                    </div>
+                )}
+                {!location && !error && (
+                    <p className="text-sm text-gray-500">
+                        Haz clic en el mapa para marcar la última ubicación donde viste a tu mascota
                     </p>
                 )}
             </div>

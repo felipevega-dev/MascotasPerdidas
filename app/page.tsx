@@ -14,7 +14,7 @@ export default function Home() {
             <div className="flex justify-center mb-8">
               <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48">
                 <Image
-                  src="/Gemini_Generated_Image_68kun68kun68kun6.jpg"
+                  src="/logo.png"
                   alt="PawAlert Logo"
                   fill
                   className="object-contain rounded-full shadow-lg"

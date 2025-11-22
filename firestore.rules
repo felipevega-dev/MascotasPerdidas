@@ -12,6 +12,14 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
 
+    // Helper function to check if only adding a sighting
+    function onlyAddingSighting() {
+      let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
+      // Allow if only 'sightings' or 'status' fields are being modified
+      return affectedKeys.hasOnly(['sightings', 'status']) &&
+             request.resource.data.sightings.size() > resource.data.sightings.size();
+    }
+
     // Pets collection
     match /pets/{petId} {
       // Anyone can read pet listings
@@ -22,9 +30,13 @@ service cloud.firestore {
       allow create: if isAuthenticated()
                     && request.resource.data.userId == request.auth.uid;
 
-      // Only the owner can update or delete their pet
-      allow update, delete: if isAuthenticated()
-                            && resource.data.userId == request.auth.uid;
+      // Owner can update all fields, or any authenticated user can add sightings
+      allow update: if isAuthenticated() &&
+                      (resource.data.userId == request.auth.uid || onlyAddingSighting());
+
+      // Only the owner can delete their pet
+      allow delete: if isAuthenticated()
+                    && resource.data.userId == request.auth.uid;
     }
 
     // Users collection (for storing user profiles)
